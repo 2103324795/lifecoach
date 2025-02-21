@@ -177,17 +177,7 @@
                     });
 
                     if (!response.ok) {
-                        const clonedResponse = response.clone();
-                        let errorMessage = '服务器错误';
-                        try {
-                            const errorData = await clonedResponse.json();
-                            errorMessage = `服务器错误 (${errorData.status}): ${errorData.error}\n详细信息: ${errorData.message || '未知错误'}`;
-                        } catch (e) {
-                            // 如果响应不是JSON格式，直接使用文本内容
-                            const errorText = await clonedResponse.text();
-                            errorMessage = `服务器错误 (${response.status}): ${errorText}`;
-                        }
-                        throw new Error(errorMessage);
+                        throw new Error(`服务器错误 (${response.status}): ${await response.text()}`);
                     }
 
                     const reader = response.body.getReader();
@@ -202,20 +192,19 @@
                         const chunk = decoder.decode(value);
                         aiResponse += chunk;
 
-                        // 第一次收到响应时创建AI消息元素
                         if (!aiMessageElement) {
                             addMessage('', false);
                             aiMessageElement = chatMessages.lastElementChild;
                         }
 
-                        // 更新AI回复的显示
                         if (aiMessageElement) {
                             aiMessageElement.querySelector('.message-content').textContent = aiResponse;
+                            chatMessages.scrollTop = chatMessages.scrollHeight;
                         }
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    addMessage(error.message || '抱歉，发生了一些错误，请稍后再试。', false);
+                    addMessage(`发生错误: ${error.message}`, false);
                 } finally {
                     loading.style.display = 'none';
                 }
