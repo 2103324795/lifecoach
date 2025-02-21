@@ -177,7 +177,14 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`服务器错误 (${response.status}): ${await response.text()}`);
+                        const errorText = await response.text();
+                        let errorMessage = '抱歉，服务暂时不可用';
+                        if (response.status === 504) {
+                            errorMessage = '服务响应时间过长，请稍后再试';
+                        } else if (errorText.includes('FUNCTION_INVOCATION_TIMEOUT')) {
+                            errorMessage = '处理请求超时，请尝试简化您的问题';
+                        }
+                        throw new Error(errorMessage);
                     }
 
                     const reader = response.body.getReader();
