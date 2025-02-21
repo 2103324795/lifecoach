@@ -78,7 +78,7 @@ app.post('/chat', async (req, res) => {
                 errorMessage = '服务器暂时不可用，请稍后重试。';
             }
             
-            res.status(response.status).json(errorMessage);
+            res.status(response.status).json({ error: errorMessage });
             return;
         }
 
