@@ -50,7 +50,7 @@ app.post('/chat', async (req, res) => {
                 'Authorization': `Bearer ${API_KEY}`
             },
             body: JSON.stringify(requestBody),
-            timeout: 30000 // 设置30秒超时
+            timeout: 60000 // 设置60秒超时
         });
 
         if (!response.ok) {
