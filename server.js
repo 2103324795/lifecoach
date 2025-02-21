@@ -14,7 +14,7 @@ app.use(express.static('.'));
 
 // DeepSeek API配置
 const API_KEY = process.env.DEEPSEEK_API_KEY;
-const API_URL = 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+const API_URL = process.env.DEEPSEEK_API_URL;
 
 // 处理聊天请求
 app.post('/chat', async (req, res) => {
@@ -49,11 +49,15 @@ app.post('/chat', async (req, res) => {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${API_KEY}`
             },
-            body: JSON.stringify(requestBody)
+            body: JSON.stringify(requestBody),
+            timeout: 30000 // 设置30秒超时
         });
 
         if (!response.ok) {
-            throw new Error(`API请求失败: ${response.status}`);
+            const errorData = await response.text();
+            console.error('API错误详情:', errorData);
+            res.status(response.status).send(errorData);
+            return;
         }
 
         // 处理流式响应
@@ -91,7 +95,7 @@ app.post('/chat', async (req, res) => {
         // res.end();
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send('服务器错误');
+        res.status(500).send(error.message || '服务器错误');
     }
 });
 

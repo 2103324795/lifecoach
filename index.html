@@ -177,7 +177,8 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error('网络请求失败');
+                        const errorText = await response.text();
+                        throw new Error(errorText);
                     }
 
                     const reader = response.body.getReader();
@@ -200,7 +201,7 @@
                     }
                 } catch (error) {
                     console.error('Error:', error);
-                    addMessage('抱歉，发生了一些错误，请稍后再试。', false);
+                    addMessage(error.message || '抱歉，发生了一些错误，请稍后再试。', false);
                 } finally {
                     loading.style.display = 'none';
                 }
