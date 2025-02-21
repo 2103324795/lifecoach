@@ -177,12 +177,19 @@
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
+                        const errorData = await response.json();
                         let errorMessage = '抱歉，服务暂时不可用';
                         if (response.status === 504) {
                             errorMessage = '服务响应时间过长，请稍后再试';
-                        } else if (errorText.includes('FUNCTION_INVOCATION_TIMEOUT')) {
-                            errorMessage = '处理请求超时，请尝试简化您的问题';
+                        } else if (errorData.error) {
+                            errorMessage = errorData.error;
+                            if (errorData.details) {
+                                console.error('错误详情:', errorData.details);
+                            }
+                        } else if (response.status === 429) {
+                            errorMessage = '请求过于频繁，请稍后再试。';
+                        } else if (response.status === 503) {
+                            errorMessage = '服务器暂时不可用，请稍后重试。';
                         }
                         throw new Error(errorMessage);
                     }
@@ -194,9 +201,17 @@
 
                     while (true) {
                         const { done, value } = await reader.read();
-                        if (done) break;
+                        if (done) {
+                            if (!aiResponse.trim()) {
+                                throw new Error('服务器返回了空响应，请重试');
+                            }
+                            break;
+                        }
                         
                         const chunk = decoder.decode(value);
+                        if (!chunk.trim()) {
+                            continue;
+                        }
                         aiResponse += chunk;
 
                         if (!aiMessageElement) {
