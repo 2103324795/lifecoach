@@ -60,30 +60,25 @@ app.post('/chat', async (req, res) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.text();
+            const errorData = await response.json();
             console.error('API错误详情:', errorData);
             console.error('API响应状态码:', response.status);
             console.error('API响应头:', JSON.stringify(response.headers.raw()));
-            console.error('请求体:', JSON.stringify(requestBody));
             
             // 构建详细的错误信息
-            let errorMessage = `服务暂时不可用\n错误详情: ${errorData}\n状态码: ${response.status}`;
-            if (errorData.includes('FUNCTION_INVOCATION_TIMEOUT')) {
-                errorMessage = '由于问题较复杂，处理时间超出限制。请尝试将问题拆分为更小的部分，或稍后重试。';
+            let errorMessage = '服务暂时不可用';
+            if (errorData.error) {
+                errorMessage = errorData.error;
+                if (errorData.message) {
+                    console.error('错误消息:', errorData.message);
+                }
             } else if (response.status === 429) {
                 errorMessage = '请求过于频繁，请稍后再试。';
             } else if (response.status === 503) {
                 errorMessage = '服务器暂时不可用，请稍后重试。';
             }
             
-            res.status(response.status).json({
-                error: errorMessage,
-                details: {
-                    errorData: errorData,
-                    status: response.status,
-                    headers: response.headers.raw()
-                }
-            });
+            res.status(response.status).json(errorMessage);
             return;
         }
 
