@@ -13,8 +13,14 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // DeepSeek API配置
-const API_KEY = process.env.DEEPSEEK_API_KEY;
-const API_URL = process.env.DEEPSEEK_API_URL;
+const API_KEY = process.env.DEEPSEEK_API_KEY || '18e034cd-1505-4fda-8edd-250f4fe815fa';
+const API_URL = process.env.DEEPSEEK_API_URL || 'https://ark.cn-beijing.volces.com/api/v3/chat/completions';
+
+// 检查API配置
+if (!API_KEY) {
+    console.error('错误: 未设置DEEPSEEK_API_KEY环境变量');
+    process.exit(1);
+}
 
 // 处理聊天请求
 app.post('/chat', async (req, res) => {
@@ -56,7 +62,18 @@ app.post('/chat', async (req, res) => {
         if (!response.ok) {
             const errorData = await response.text();
             console.error('API错误详情:', errorData);
-            res.status(response.status).send(errorData);
+            console.error('API响应状态码:', response.status);
+            console.error('API响应头:', JSON.stringify(response.headers.raw()));
+            
+            // 构建详细的错误信息
+            const errorMessage = {
+                status: response.status,
+                statusText: response.statusText,
+                error: errorData,
+                headers: response.headers.raw()
+            };
+            
+            res.status(response.status).json(errorMessage);
             return;
         }
 
@@ -73,29 +90,51 @@ app.post('/chat', async (req, res) => {
                     try {
                         const jsonData = JSON.parse(jsonStr);
                         if (jsonData.choices && jsonData.choices[0].delta.content) {
-                            res.write(jsonData.choices[0].delta.content);
+                            const content = jsonData.choices[0].delta.content;
+                            chunks.push(content);
+                            res.write(content);
                         }
                     } catch (e) {
                         console.error('JSON解析错误:', e);
+                        console.error('原始数据:', jsonStr);
                     }
                 }
             }
         });
 
         response.body.on('end', () => {
-            res.end();
+            if (chunks.length === 0) {
+                res.status(500).json({
+                    error: '未收到有效的API响应',
+                    message: '服务器未能获取到任何有效的响应内容'
+                });
+            } else {
+                res.end();
+            }
         });
 
         response.body.on('error', error => {
             console.error('Stream error:', error);
-            res.status(500).send('服务器错误');
+            console.error('错误堆栈:', error.stack);
+            res.status(500).json({
+                error: '流处理错误',
+                message: error.message,
+                stack: error.stack
+            });
         });
 
         // 移除这里的 res.end() 调用，因为它会过早终止响应
         // res.end();
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).send(error.message || '服务器错误');
+        console.error('错误堆栈:', error.stack);
+        console.error('请求体:', JSON.stringify(requestBody));
+        res.status(500).json({
+            error: '服务器处理错误',
+            message: error.message,
+            stack: error.stack,
+            requestBody: requestBody
+        });
     }
 });
 

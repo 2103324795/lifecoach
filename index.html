@@ -177,8 +177,11 @@
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText);
+                        const errorData = await response.json();
+                        throw new Error(
+                            `服务器错误 (${errorData.status}): ${errorData.error}\n` +
+                            `详细信息: ${errorData.message || '未知错误'}`
+                        );
                     }
 
                     const reader = response.body.getReader();
