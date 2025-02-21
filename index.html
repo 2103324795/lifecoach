@@ -177,11 +177,16 @@
                     });
 
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(
-                            `服务器错误 (${errorData.status}): ${errorData.error}\n` +
-                            `详细信息: ${errorData.message || '未知错误'}`
-                        );
+                        let errorMessage = '服务器错误';
+                        try {
+                            const errorData = await response.json();
+                            errorMessage = `服务器错误 (${errorData.status}): ${errorData.error}\n详细信息: ${errorData.message || '未知错误'}`;
+                        } catch (e) {
+                            // 如果响应不是JSON格式，直接使用文本内容
+                            const errorText = await response.text();
+                            errorMessage = `服务器错误 (${response.status}): ${errorText}`;
+                        }
+                        throw new Error(errorMessage);
                     }
 
                     const reader = response.body.getReader();
