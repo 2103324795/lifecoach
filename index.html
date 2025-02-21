@@ -193,6 +193,7 @@
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let aiResponse = '';
+                    let aiMessageElement = null;
 
                     while (true) {
                         const { done, value } = await reader.read();
@@ -200,12 +201,16 @@
                         
                         const chunk = decoder.decode(value);
                         aiResponse += chunk;
+
+                        // 第一次收到响应时创建AI消息元素
+                        if (!aiMessageElement) {
+                            addMessage('', false);
+                            aiMessageElement = chatMessages.lastElementChild;
+                        }
+
                         // 更新AI回复的显示
-                        const lastMessage = chatMessages.lastElementChild;
-                        if (lastMessage && lastMessage.classList.contains('ai')) {
-                            lastMessage.querySelector('.message-content').textContent = aiResponse;
-                        } else {
-                            addMessage(aiResponse, false);
+                        if (aiMessageElement) {
+                            aiMessageElement.querySelector('.message-content').textContent = aiResponse;
                         }
                     }
                 } catch (error) {
